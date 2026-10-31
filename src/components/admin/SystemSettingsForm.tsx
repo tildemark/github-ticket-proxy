@@ -193,6 +193,7 @@ export function SystemSettingsForm({ initialSettings }: SystemSettingsFormProps)
                     onChange={(e) => setEmailProvider(e.target.value)}
                     className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   >
+                    <option value="oci">Oracle Cloud Infrastructure (OCI Email Delivery)</option>
                     <option value="smtp">Custom SMTP Server</option>
                     <option value="resend">Resend (API Key)</option>
                     <option value="sendgrid">SendGrid (API Key)</option>
@@ -201,31 +202,45 @@ export function SystemSettingsForm({ initialSettings }: SystemSettingsFormProps)
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                    Sender From Address
+                    Sender Approved From Address
                   </label>
                   <input
                     type="email"
                     name="smtpFromEmail"
                     defaultValue={initialSettings?.smtpFromEmail || "support@issuebridge.com"}
-                    placeholder="support@company.com"
+                    placeholder="support@yourverifieddomain.com"
                     className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
               </div>
 
-              {emailProvider === "smtp" ? (
+              {emailProvider === "oci" && (
+                <div className="p-3.5 rounded-xl border border-amber-500/25 bg-amber-950/15 text-xs text-amber-200/90 leading-relaxed space-y-1">
+                  <p className="font-semibold text-amber-200 flex items-center gap-1.5">
+                    💡 OCI Email Delivery Setup Tip:
+                  </p>
+                  <p>
+                    1. <strong>Hostname</strong>: <code className="font-mono bg-black/40 px-1 py-0.5 rounded text-amber-300">smtp.email.&#123;region&#125;.oci.oraclecloud.com</code> (e.g. <code className="font-mono text-amber-300">smtp.email.us-ashburn-1.oci.oraclecloud.com</code>).<br />
+                    2. <strong>Port</strong>: Recommended <code className="font-mono text-amber-300">587</code> (STARTTLS) or <code className="font-mono text-amber-300">25</code>.<br />
+                    3. <strong>Username & Password</strong>: Generate via <em>OCI Console &rarr; Identity &rarr; Users &rarr; User Details &rarr; SMTP Credentials</em> (Username is an OCID, password is a generated key).<br />
+                    4. <strong>Approved Sender</strong>: Ensure the <em>Sender From Address</em> above matches an Approved Sender configured in your OCI Email Delivery compartment.
+                  </p>
+                </div>
+              )}
+
+              {emailProvider === "smtp" || emailProvider === "oci" ? (
                 <div className="space-y-4 pt-2 border-t border-slate-800/60">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        SMTP Hostname
+                        SMTP Hostname {emailProvider === "oci" && "(OCI Endpoint)"}
                       </label>
                       <input
                         type="text"
                         name="smtpHost"
-                        defaultValue={initialSettings?.smtpHost || ""}
-                        placeholder="smtp.mailgun.org / smtp.office365.com"
-                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        defaultValue={initialSettings?.smtpHost || (emailProvider === "oci" ? "smtp.email.us-ashburn-1.oci.oraclecloud.com" : "")}
+                        placeholder={emailProvider === "oci" ? "smtp.email.{region}.oci.oraclecloud.com" : "smtp.mailgun.org"}
+                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                       />
                     </div>
                     <div>
@@ -244,26 +259,26 @@ export function SystemSettingsForm({ initialSettings }: SystemSettingsFormProps)
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        SMTP Username
+                        SMTP Username {emailProvider === "oci" && "(OCI User OCID)"}
                       </label>
                       <input
                         type="text"
                         name="smtpUser"
                         defaultValue={initialSettings?.smtpUser || ""}
-                        placeholder="postmaster@domain.com"
-                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        placeholder={emailProvider === "oci" ? "ocid1.user.oc1..aaaaaa..." : "postmaster@domain.com"}
+                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                        SMTP Password
+                        SMTP Password {emailProvider === "oci" && "(OCI Generated Key)"}
                       </label>
                       <input
                         type="password"
                         name="smtpPassword"
                         defaultValue={initialSettings?.smtpPassword || ""}
                         placeholder="••••••••••••••••"
-                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                       />
                     </div>
                   </div>
