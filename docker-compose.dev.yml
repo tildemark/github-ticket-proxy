@@ -1,0 +1,26 @@
+services:
+  issue-bridge-db:
+    image: postgres:16-alpine
+    container_name: issue-bridge-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: issue_user
+      POSTGRES_PASSWORD: issue_password
+      POSTGRES_DB: issue_bridge
+    ports:
+      - "5438:5432"
+    volumes:
+      - issue_bridge_pgdata:/var/lib/postgresql/data
+
+  issue-bridge-redis:
+    image: redis:7-alpine
+    container_name: issue-bridge-redis
+    restart: unless-stopped
+    ports:
+      - "6385:6379"
+    volumes:
+      - issue_bridge_redisdata:/data
+
+volumes:
+  issue_bridge_pgdata:
+  issue_bridge_redisdata:
