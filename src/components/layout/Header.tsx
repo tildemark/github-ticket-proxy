@@ -66,7 +66,10 @@ export function Header({
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2.5 pl-2 border-l border-slate-800/80">
+          <Link
+            href="/profile"
+            className="flex items-center space-x-2.5 pl-2 border-l border-slate-800/80 group hover:opacity-85 transition-opacity"
+          >
             <div
               className={`h-7 w-7 rounded-lg flex items-center justify-center text-xs font-semibold text-white shadow-inner ${
                 userRole === "ADMIN"
@@ -79,10 +82,12 @@ export function Header({
               {userName ? userName.charAt(0).toUpperCase() : "U"}
             </div>
             <div className="hidden sm:block text-left text-xs">
-              <p className="font-medium text-slate-200 leading-tight">{userName || "User"}</p>
+              <p className="font-medium text-slate-200 leading-tight group-hover:text-emerald-400 transition-colors">
+                {userName || "User"}
+              </p>
               <p className="text-slate-500 text-[10px] uppercase font-mono">{userRole || "CLIENT"}</p>
             </div>
-          </div>
+          </Link>
 
           <Link href="/login">
             <Button variant="ghost" size="sm" className="text-xs text-slate-400 hover:text-white gap-1 px-2.5 h-8">

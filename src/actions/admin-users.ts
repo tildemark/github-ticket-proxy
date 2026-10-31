@@ -74,3 +74,71 @@ export async function revokeInvitation(invitationId: string) {
   revalidatePath("/admin/invites");
   return { success: true };
 }
+
+/**
+ * Admin action to directly reset a user's password
+ */
+export async function resetUserPassword(userId: string, newPassword?: string) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN") {
+    throw new Error("Only administrators can reset client passwords.");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (!target) {
+    throw new Error("User not found.");
+  }
+
+  // Generate a secure random password if not supplied
+  const generatedPassword = newPassword?.trim() || "Pass-" + crypto.randomBytes(4).toString("hex") + "!9";
+  const bcrypt = await import("bcryptjs");
+  const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  revalidatePath("/admin/companies");
+  return {
+    success: true,
+    userEmail: target.email,
+    temporaryPassword: generatedPassword,
+  };
+}
+
+/**
+ * Admin action to update user details (name, email, role, company)
+ */
+export async function updateUserDetails(
+  userId: string,
+  data: {
+    name?: string;
+    email?: string;
+    role?: "CLIENT" | "AGENT" | "ADMIN";
+    companyId?: string | null;
+  }
+) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN") {
+    throw new Error("Only administrators can update account details.");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name?.trim() || undefined,
+      email: data.email?.trim() || undefined,
+      role: data.role || undefined,
+      companyId: data.companyId,
+    },
+  });
+
+  revalidatePath("/admin/companies");
+  return { success: true };
+}
+

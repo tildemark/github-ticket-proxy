@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { UserAccessButton } from "@/components/admin/UserAccessButton";
-import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX } from "lucide-react";
+import { ResetPasswordModal } from "@/components/admin/ResetPasswordModal";
+import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX, KeyRound } from "lucide-react";
 
 export default async function AdminCompaniesPage() {
   const user = await getCurrentUser();
@@ -157,10 +158,16 @@ export default async function AdminCompaniesPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs text-slate-500">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs text-slate-500 hidden sm:inline">
                               Joined {new Date(clientUser.createdAt).toLocaleDateString()}
                             </span>
+
+                            <ResetPasswordModal
+                              userId={clientUser.id}
+                              userName={clientUser.name || "Client"}
+                              userEmail={clientUser.email || ""}
+                            />
 
                             <UserAccessButton
                               userId={clientUser.id}
