@@ -22,6 +22,20 @@ export async function createTicket(formData: FormData) {
     if (selectedCompanyId) {
       assignedCompanyId = selectedCompanyId;
     }
+  } else if (user.role === "CLIENT" && user.companyId) {
+    // Verify client company is active and contract has not expired
+    const clientCompany = await prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: { isActive: true, suspensionReason: true, warrantyEndsAt: true, name: true },
+    });
+
+    if (clientCompany && !clientCompany.isActive) {
+      throw new Error(
+        `Support access for ${clientCompany.name} is currently suspended: ${
+          clientCompany.suspensionReason || "Warranty or contract expired"
+        }. Please contact your account representative.`
+      );
+    }
   }
 
   const ticket = await prisma.ticket.create({

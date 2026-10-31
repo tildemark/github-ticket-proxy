@@ -14,6 +14,8 @@ export async function createCompany(formData: FormData) {
 
   const name = formData.get("name") as string;
   const domain = (formData.get("domain") as string)?.trim().toLowerCase() || null;
+  const warrantyEndsAtRaw = formData.get("warrantyEndsAt") as string;
+  const notes = (formData.get("notes") as string)?.trim() || null;
 
   if (!name?.trim()) {
     throw new Error("Company name is required.");
@@ -23,12 +25,69 @@ export async function createCompany(formData: FormData) {
     data: {
       name: name.trim(),
       domain: domain || undefined,
+      warrantyEndsAt: warrantyEndsAtRaw ? new Date(warrantyEndsAtRaw) : undefined,
+      notes: notes || undefined,
     },
   });
 
   revalidatePath("/admin/companies");
   revalidatePath("/admin/invites");
   return { success: true, companyId: company.id };
+}
+
+/**
+ * Suspend or restore a company's support access (e.g. warranty ended, contract renewal pending)
+ */
+export async function toggleCompanyStatus(companyId: string, currentStatus: boolean, reason?: string) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN") {
+    throw new Error("Only administrators can suspend or restore company contracts.");
+  }
+
+  const newStatus = !currentStatus;
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: {
+      isActive: newStatus,
+      suspensionReason: newStatus ? null : (reason?.trim() || "Warranty or contract ended"),
+    },
+  });
+
+  revalidatePath("/admin/companies");
+  revalidatePath("/admin");
+  return { success: true, newStatus };
+}
+
+/**
+ * Update company warranty/contract expiration date & support notes
+ */
+export async function updateCompanyDetails(
+  companyId: string,
+  data: {
+    name?: string;
+    domain?: string | null;
+    warrantyEndsAt?: string | null;
+    notes?: string | null;
+  }
+) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN") {
+    throw new Error("Only administrators can modify company contract details.");
+  }
+
+  await prisma.company.update({
+    where: { id: companyId },
+    data: {
+      name: data.name?.trim() || undefined,
+      domain: data.domain?.trim().toLowerCase() || null,
+      warrantyEndsAt: data.warrantyEndsAt ? new Date(data.warrantyEndsAt) : null,
+      notes: data.notes?.trim() || null,
+    },
+  });
+
+  revalidatePath("/admin/companies");
+  return { success: true };
 }
 
 export async function createInvitation(formData: FormData) {

@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { UserAccessButton } from "@/components/admin/UserAccessButton";
 import { ResetPasswordModal } from "@/components/admin/ResetPasswordModal";
-import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX, KeyRound } from "lucide-react";
+import { CompanyLifecycleModal } from "@/components/admin/CompanyLifecycleModal";
+import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX, KeyRound, Calendar } from "lucide-react";
 
 export default async function AdminCompaniesPage() {
   const user = await getCurrentUser();
@@ -106,12 +107,28 @@ export default async function AdminCompaniesPage() {
                     </CardDescription>
                   </div>
 
-                  <Link href={`/admin/invites?companyId=${company.id}`}>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-xs border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10">
-                      <Plus className="h-3.5 w-3.5" />
-                      Invite Member to {company.name}
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <CompanyLifecycleModal
+                      company={{
+                        id: company.id,
+                        name: company.name,
+                        domain: company.domain,
+                        isActive: (company as any).isActive ?? true,
+                        suspensionReason: (company as any).suspensionReason || null,
+                        warrantyEndsAt: (company as any).warrantyEndsAt
+                          ? new Date((company as any).warrantyEndsAt).toISOString()
+                          : null,
+                        notes: (company as any).notes || null,
+                      }}
+                    />
+
+                    <Link href={`/admin/invites?companyId=${company.id}`}>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-xs border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/10 h-7 px-2.5">
+                        <Plus className="h-3 w-3" />
+                        Invite Member
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </CardHeader>
 

@@ -42,15 +42,19 @@ enum TicketSource {
 }
 
 model Company {
-  id          String       @id @default(cuid())
-  name        String
-  domain      String?      @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  name             String
+  domain           String?      @unique
+  isActive         Boolean      @default(true) // false = suspended (warranty expired, delinquent, etc.)
+  suspensionReason String?
+  warrantyEndsAt   DateTime?    // SLA / Warranty / Contract expiration date
+  notes            String?      // Internal account notes for support staff
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
-  users       User[]
-  tickets     Ticket[]
-  invitations Invitation[]
+  users            User[]
+  tickets          Ticket[]
+  invitations      Invitation[]
 }
 
 // NextAuth / Auth.js standard models
