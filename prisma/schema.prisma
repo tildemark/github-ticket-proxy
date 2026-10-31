@@ -98,6 +98,33 @@ model Invitation {
 model SystemSetting {
   id                       String   @id @default("global")
   allowPublicRegistration  Boolean  @default(false)
+
+  // Email (SMTP / Resend)
+  emailProvider            String   @default("smtp") // "smtp" | "resend" | "sendgrid"
+  smtpHost                 String?
+  smtpPort                 Int?     @default(587)
+  smtpUser                 String?
+  smtpPassword             String?
+  smtpFromEmail            String?  @default("support@issuebridge.com")
+  resendApiKey             String?
+
+  // SMS (Twilio / Africa's Talking)
+  smsEnabled               Boolean  @default(false)
+  smsProvider              String   @default("twilio") // "twilio"
+  twilioAccountSid         String?
+  twilioAuthToken          String?
+  twilioFromNumber         String?
+
+  // Real-time Chat / Webhook Notifications (Slack, Discord, MS Teams)
+  webhookNotificationsEnabled Boolean @default(false)
+  slackWebhookUrl             String?
+  discordWebhookUrl           String?
+
+  // GitHub Default Repo Configuration
+  githubRepoOwner          String?  @default("tildemark")
+  githubRepoName           String?  @default("trace")
+  githubDefaultLabels      String?  @default("support-escalation")
+
   updatedAt                DateTime @updatedAt
 }
 

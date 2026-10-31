@@ -25,6 +25,7 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 
 interface AdminDashboardPageProps {
@@ -182,9 +183,15 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                 </Button>
               </Link>
               <Link href="/admin/invites">
-                <Button size="sm" className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-9 px-3.5 gap-1.5 font-medium shadow-md shadow-purple-600/20">
-                  <MailCheck className="h-3.5 w-3.5" />
-                  Client Invitations
+                <Button size="sm" variant="outline" className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 hover:text-white text-xs h-9 px-3.5 gap-1.5 font-medium">
+                  <MailCheck className="h-3.5 w-3.5 text-purple-400" />
+                  Invitations
+                </Button>
+              </Link>
+              <Link href="/admin/setup">
+                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-9 px-3.5 gap-1.5 font-medium shadow-md shadow-emerald-600/20">
+                  <Settings className="h-3.5 w-3.5" />
+                  Backend Setup
                 </Button>
               </Link>
             </div>
