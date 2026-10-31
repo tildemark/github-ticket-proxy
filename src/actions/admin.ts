@@ -17,6 +17,7 @@ export async function escalateToGitHub(ticketId: string) {
     include: {
       author: true,
       company: true,
+      project: true,
       comments: {
         where: { isInternal: false },
         include: { author: true },
@@ -29,6 +30,13 @@ export async function escalateToGitHub(ticketId: string) {
     throw new Error("Ticket not found.");
   }
 
+  // Prevent GitHub escalation for hardware/service/purchase projects without a repo
+  if (ticket.project && ticket.project.type !== "SOFTWARE" && !ticket.project.githubRepoName) {
+    throw new Error(
+      `Project "${ticket.project.name}" is classified as ${ticket.project.type} and does not have a linked GitHub repository.`
+    );
+  }
+
   if (ticket.githubIssueId) {
     return {
       success: true,
@@ -37,12 +45,17 @@ export async function escalateToGitHub(ticketId: string) {
     };
   }
 
+  // Determine repository destination: Project-specific repo or global default
+  const targetOwner = ticket.project?.githubRepoOwner || undefined;
+  const targetRepo = ticket.project?.githubRepoName || undefined;
+
   // Format real GitHub issue body
   const issueMarkdown = [
     `### 🌉 Issue-Bridge Support Escalation`,
     ``,
     `- **Internal Ticket ID:** \`#${ticket.id}\``,
     `- **Client Company:** ${ticket.company ? ticket.company.name : "Direct User"}`,
+    ticket.project ? `- **Project:** \`${ticket.project.name}\` (${ticket.project.type})` : "",
     `- **Client Submitter:** ${ticket.author.name || ticket.author.email}`,
     `- **Priority:** \`${ticket.priority}\``,
     `- **Escalated By:** ${user.name} (${user.role})`,
@@ -57,12 +70,14 @@ export async function escalateToGitHub(ticketId: string) {
           .map((c) => `> **${c.author.name}:**\n> ${c.content.replace(/\n/g, "\n> ")}`)
           .join("\n\n")
       : "",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   const ghIssue = await createGitHubIssue({
     title: `[Ticket #${ticket.id.slice(-6)}] ${ticket.subject}`,
     body: issueMarkdown,
     labels: ["support-escalation", `priority:${ticket.priority.toLowerCase()}`],
+    owner: targetOwner,
+    repo: targetRepo,
   });
 
   await prisma.ticket.update({

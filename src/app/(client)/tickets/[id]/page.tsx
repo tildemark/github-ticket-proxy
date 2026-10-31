@@ -72,6 +72,13 @@ export default async function ClientTicketDetailPage({ params }: TicketDetailPag
           name: true,
         },
       },
+      project: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
       author: {
         select: {
           name: true,
@@ -157,6 +164,14 @@ export default async function ClientTicketDetailPage({ params }: TicketDetailPag
                     <>
                       <span>•</span>
                       <span className="text-indigo-400 font-sans">{ticket.company.name}</span>
+                    </>
+                  )}
+                  {ticket.project && (
+                    <>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-sans font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                        [{ticket.project.type}] {ticket.project.name}
+                      </span>
                     </>
                   )}
                   <span>•</span>

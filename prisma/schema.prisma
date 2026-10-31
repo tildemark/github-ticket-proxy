@@ -41,20 +41,48 @@ enum TicketSource {
   MESSAGING
 }
 
+enum ProjectType {
+  SOFTWARE       // Web app, Mobile app, Backend API (Supports GitHub escalation)
+  HARDWARE       // Server racks, IoT devices, Solar system setup, Equipment
+  SERVICE        // Maintenance agreement, Consulting, SLA monitoring
+  PURCHASE       // Hardware procurement, License purchase
+}
+
 model Company {
   id               String       @id @default(cuid())
   name             String
   domain           String?      @unique
   isActive         Boolean      @default(true) // false = suspended (warranty expired, delinquent, etc.)
   suspensionReason String?
-  warrantyEndsAt   DateTime?    // SLA / Warranty / Contract expiration date
+  warrantyEndsAt   DateTime?    // Company-level SLA / Warranty expiration date
   notes            String?      // Internal account notes for support staff
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   users            User[]
   tickets          Ticket[]
+  projects         Project[]
   invitations      Invitation[]
+}
+
+model Project {
+  id               String       @id @default(cuid())
+  name             String       // e.g. "Trace Mobile App", "Solar System Inverter Setup", "Warehouse Server Rack"
+  description      String?
+  type             ProjectType  @default(SOFTWARE)
+  isActive         Boolean      @default(true)
+  warrantyEndsAt   DateTime?    // Project-specific warranty / contract end date
+  
+  // Optional GitHub repository linking (only applicable to software projects)
+  githubRepoOwner  String?      // e.g. "tildemark"
+  githubRepoName   String?      // e.g. "trace"
+
+  companyId        String
+  company          Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  tickets          Ticket[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 }
 
 // NextAuth / Auth.js standard models
@@ -185,6 +213,10 @@ model Ticket {
   // Company-level multi-tenancy
   companyId        String?
   company          Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  // Project-level scoping (Hardware, Software, Solar, Service, Purchase)
+  projectId        String?
+  project          Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   // GitHub Proxy Internal Fields (Hidden from Clients)
   githubIssueId    Int?

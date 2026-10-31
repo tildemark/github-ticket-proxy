@@ -8,16 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Send, Loader2, Building2, Paperclip, UploadCloud } from "lucide-react";
+import { Send, Loader2, Building2, Paperclip, UploadCloud, FolderKanban, Cpu, Wrench, ShoppingBag, Code } from "lucide-react";
 
 export function CreateTicketForm({
   userRole,
   userCompany,
   companies,
+  projects = [],
 }: {
   userRole: "CLIENT" | "AGENT" | "ADMIN";
   userCompany?: { id: string; name: string } | null;
   companies: { id: string; name: string }[];
+  projects?: {
+    id: string;
+    name: string;
+    type: "SOFTWARE" | "HARDWARE" | "SERVICE" | "PURCHASE";
+    companyId?: string;
+    warrantyEndsAt?: Date | null;
+  }[];
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -92,6 +100,47 @@ export function CreateTicketForm({
               <p className="text-[11px] text-slate-400">
                 This ticket will only be visible to members of the selected company and support staff.
               </p>
+            </div>
+          )}
+
+          {/* Subscribed Project Selector (Hardware, Software, Solar, Service, Purchase) */}
+          {projects.length > 0 && (
+            <div className="space-y-2">
+              <label
+                htmlFor="projectId"
+                className="block text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center justify-between"
+              >
+                <span className="flex items-center gap-1.5">
+                  <FolderKanban className="h-3.5 w-3.5 text-emerald-400" />
+                  Select Project / System / Purchase
+                </span>
+                <span className="text-[11px] text-slate-500 font-normal normal-case">
+                  Optional &bull; routes to dedicated support team
+                </span>
+              </label>
+              <select
+                id="projectId"
+                name="projectId"
+                className="flex h-10 w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/80 transition-all cursor-pointer"
+              >
+                <option value="">-- General Company Ticket (No Specific Project) --</option>
+                {projects.map((p) => {
+                  const typeLabel =
+                    p.type === "HARDWARE"
+                      ? "Hardware / Solar"
+                      : p.type === "PURCHASE"
+                      ? "Procurement / Purchase"
+                      : p.type === "SERVICE"
+                      ? "Service / SLA"
+                      : "Software";
+
+                  return (
+                    <option key={p.id} value={p.id}>
+                      [{typeLabel}] {p.name}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           )}
 

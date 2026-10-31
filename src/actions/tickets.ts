@@ -38,6 +38,18 @@ export async function createTicket(formData: FormData) {
     }
   }
 
+  const projectId = (formData.get("projectId") as string) || null;
+
+  if (projectId) {
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, name: true, isActive: true, warrantyEndsAt: true },
+    });
+    if (proj && !proj.isActive) {
+      throw new Error(`Project "${proj.name}" is currently suspended. Please contact support.`);
+    }
+  }
+
   const ticket = await prisma.ticket.create({
     data: {
       subject,
@@ -48,6 +60,7 @@ export async function createTicket(formData: FormData) {
       source: "WEB",
       authorId: user.id,
       companyId: assignedCompanyId || undefined,
+      projectId: projectId || undefined,
     },
   });
 

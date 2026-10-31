@@ -9,10 +9,23 @@ import { ArrowLeft } from "lucide-react";
 export default async function NewTicketPage() {
   const user = await getCurrentUser();
 
-  const companies = await prisma.company.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const [companies, projects] = await Promise.all([
+    prisma.company.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    user.companyId
+      ? prisma.project.findMany({
+          where: { companyId: user.companyId, isActive: true },
+          select: { id: true, name: true, type: true, warrantyEndsAt: true },
+          orderBy: { name: "asc" },
+        })
+      : prisma.project.findMany({
+          where: { isActive: true },
+          select: { id: true, name: true, type: true, companyId: true, warrantyEndsAt: true },
+          orderBy: { name: "asc" },
+        }),
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
@@ -30,6 +43,7 @@ export default async function NewTicketPage() {
           userRole={user.role}
           userCompany={user.company}
           companies={companies}
+          projects={projects as any}
         />
       </main>
     </div>

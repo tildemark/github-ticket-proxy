@@ -2,16 +2,20 @@ interface CreateGitHubIssueOptions {
   title: string;
   body: string;
   labels?: string[];
+  owner?: string;
+  repo?: string;
 }
 
 export async function createGitHubIssue({
   title,
   body,
   labels = ["support-escalation"],
+  owner: overrideOwner,
+  repo: overrideRepo,
 }: CreateGitHubIssueOptions) {
   const token = process.env.GITHUB_TOKEN;
-  const owner = process.env.GITHUB_REPO_OWNER || "tildemark";
-  const repo = process.env.GITHUB_REPO_NAME || "trace";
+  const owner = overrideOwner || process.env.GITHUB_REPO_OWNER || "tildemark";
+  const repo = overrideRepo || process.env.GITHUB_REPO_NAME || "trace";
 
   if (!token) {
     throw new Error("GITHUB_TOKEN is not configured in environment variables.");

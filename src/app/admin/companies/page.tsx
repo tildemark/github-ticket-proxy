@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { UserAccessButton } from "@/components/admin/UserAccessButton";
 import { ResetPasswordModal } from "@/components/admin/ResetPasswordModal";
 import { CompanyLifecycleModal } from "@/components/admin/CompanyLifecycleModal";
-import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX, KeyRound, Calendar } from "lucide-react";
+import { ProjectManagerModal } from "@/components/admin/ProjectManagerModal";
+import { Building2, Users, ArrowLeft, Mail, Ticket, Plus, ShieldCheck, UserX, KeyRound, Calendar, FolderKanban } from "lucide-react";
 
 export default async function AdminCompaniesPage() {
   const user = await getCurrentUser();
@@ -18,6 +19,9 @@ export default async function AdminCompaniesPage() {
     include: {
       users: {
         orderBy: { createdAt: "desc" },
+      },
+      projects: {
+        orderBy: { name: "asc" },
       },
       _count: {
         select: { tickets: true },
@@ -108,6 +112,21 @@ export default async function AdminCompaniesPage() {
                   </div>
 
                   <div className="flex items-center gap-2.5 flex-wrap">
+                    <ProjectManagerModal
+                      companyId={company.id}
+                      companyName={company.name}
+                      projects={company.projects.map((p) => ({
+                        id: p.id,
+                        name: p.name,
+                        type: p.type,
+                        description: p.description,
+                        isActive: p.isActive,
+                        warrantyEndsAt: p.warrantyEndsAt ? p.warrantyEndsAt.toISOString() : null,
+                        githubRepoOwner: p.githubRepoOwner,
+                        githubRepoName: p.githubRepoName,
+                      }))}
+                    />
+
                     <CompanyLifecycleModal
                       company={{
                         id: company.id,
