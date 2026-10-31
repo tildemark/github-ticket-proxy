@@ -2,95 +2,175 @@
 
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
+import { createGitHubIssue } from "@/lib/github";
 import { revalidatePath } from "next/cache";
 
 export async function escalateToGitHub(ticketId: string) {
   const user = await getCurrentUser();
 
   if (user.role !== "ADMIN" && user.role !== "AGENT") {
-    throw new Error("Only support agents or administrators can escalate to GitHub.");
+    throw new Error("Only support staff can escalate to GitHub.");
   }
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
+    include: {
+      author: true,
+      company: true,
+      comments: {
+        where: { isInternal: false },
+        include: { author: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 
   if (!ticket) {
     throw new Error("Ticket not found.");
   }
 
-  // Simulate or assign proxy GitHub issue ID
-  const simulatedIssueId = ticket.githubIssueId || Math.floor(100 + Math.random() * 900);
-  const repoOwner = process.env.GITHUB_REPO_OWNER || "private-corp";
-  const repoName = process.env.GITHUB_REPO_NAME || "core-api";
-  const simulatedUrl = `https://github.com/${repoOwner}/${repoName}/issues/${simulatedIssueId}`;
+  if (ticket.githubIssueId) {
+    return {
+      success: true,
+      issueId: ticket.githubIssueId,
+      url: ticket.githubIssueUrl,
+    };
+  }
+
+  // Format real GitHub issue body
+  const issueMarkdown = [
+    `### 🌉 Issue-Bridge Support Escalation`,
+    ``,
+    `- **Internal Ticket ID:** \`#${ticket.id}\``,
+    `- **Client Company:** ${ticket.company ? ticket.company.name : "Direct User"}`,
+    `- **Client Submitter:** ${ticket.author.name || ticket.author.email}`,
+    `- **Priority:** \`${ticket.priority}\``,
+    `- **Escalated By:** ${user.name} (${user.role})`,
+    ``,
+    `---`,
+    `#### Bug / Feature Description`,
+    `${ticket.description}`,
+    ``,
+    ticket.comments.length > 0
+      ? `#### Public Conversation Context (${ticket.comments.length} replies)\n` +
+        ticket.comments
+          .map((c) => `> **${c.author.name}:**\n> ${c.content.replace(/\n/g, "\n> ")}`)
+          .join("\n\n")
+      : "",
+  ].join("\n");
+
+  const ghIssue = await createGitHubIssue({
+    title: `[Ticket #${ticket.id.slice(-6)}] ${ticket.subject}`,
+    body: issueMarkdown,
+    labels: ["support-escalation", `priority:${ticket.priority.toLowerCase()}`],
+  });
 
   await prisma.ticket.update({
     where: { id: ticketId },
     data: {
-      githubIssueId: simulatedIssueId,
-      githubIssueUrl: simulatedUrl,
+      githubIssueId: ghIssue.issueNumber,
+      githubIssueUrl: ghIssue.issueUrl,
+      tier: "ENGINEERING_ESCALATED",
       status: "IN_PROGRESS",
+      escalatedAt: new Date(),
     },
   });
 
-  // Record an internal comment so agents know this happened
   await prisma.comment.create({
     data: {
       ticketId,
       authorId: user.id,
-      content: `[Internal Escalation] Linked to private GitHub repository issue #${simulatedIssueId} (${repoOwner}/${repoName}) by ${user.name}.`,
+      content: `[GitHub Escalation] Created real issue in private repository: #${ghIssue.issueNumber} (${ghIssue.issueUrl}). Escalation tier changed to Engineering.`,
       isInternal: true,
     },
   });
 
   revalidatePath("/admin");
   revalidatePath(`/admin/tickets/${ticketId}`);
-  return { success: true, issueId: simulatedIssueId, url: simulatedUrl };
+  return { success: true, issueId: ghIssue.issueNumber, url: ghIssue.issueUrl };
 }
 
-export async function updateTicketStatus(ticketId: string, status: any) {
+export async function escalateTier(ticketId: string, newTier: "L1_SUPPORT" | "L2_SENIOR" | "ENGINEERING_ESCALATED") {
   const user = await getCurrentUser();
-
   if (user.role !== "ADMIN" && user.role !== "AGENT") {
     throw new Error("Unauthorized.");
   }
 
   await prisma.ticket.update({
     where: { id: ticketId },
-    data: { status },
+    data: { tier: newTier },
   });
-
-  revalidatePath("/admin");
-  revalidatePath(`/admin/tickets/${ticketId}`);
-  return { success: true };
-}
-
-export async function addAgentInternalComment(formData: FormData) {
-  const user = await getCurrentUser();
-
-  if (user.role !== "ADMIN" && user.role !== "AGENT") {
-    throw new Error("Unauthorized.");
-  }
-
-  const ticketId = formData.get("ticketId") as string;
-  const content = formData.get("content") as string;
-  const isInternal = formData.get("isInternal") === "true";
-
-  if (!ticketId || !content?.trim()) {
-    throw new Error("Ticket ID and comment are required.");
-  }
 
   await prisma.comment.create({
     data: {
       ticketId,
       authorId: user.id,
-      content: content.trim(),
-      isInternal,
+      content: `[Escalation Tier] Changed to ${newTier.replace(/_/g, " ")} by ${user.name}.`,
+      isInternal: true,
     },
   });
 
-  revalidatePath(`/admin/tickets/${ticketId}`);
-  revalidatePath(`/tickets/${ticketId}`);
+  revalidatePath("/admin");
+  return { success: true, newTier };
+}
+
+export async function assignTicket(ticketId: string, agentId: string | null) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN" && user.role !== "AGENT") {
+    throw new Error("Unauthorized.");
+  }
+
+  const assignedUser = agentId
+    ? await prisma.user.findUnique({ where: { id: agentId } })
+    : null;
+
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: { assignedToId: agentId },
+  });
+
+  await prisma.comment.create({
+    data: {
+      ticketId,
+      authorId: user.id,
+      content: agentId
+        ? `[Assignment] Delegated to ${assignedUser?.name || assignedUser?.email} by ${user.name}.`
+        : `[Assignment] Unassigned by ${user.name}.`,
+      isInternal: true,
+    },
+  });
+
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function updateTicketStatus(ticketId: string, status: any) {
+  const user = await getCurrentUser();
+  if (user.role !== "ADMIN" && user.role !== "AGENT") {
+    throw new Error("Unauthorized.");
+  }
+
+  const resolvedAt = status === "RESOLVED" || status === "CLOSED" ? new Date() : null;
+
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      status,
+      ...(status === "RESOLVED" || status === "CLOSED"
+        ? { resolvedAt: new Date() }
+        : { resolvedAt: null }),
+    },
+  });
+
+  await prisma.comment.create({
+    data: {
+      ticketId,
+      authorId: user.id,
+      content: `[Status Change] Ticket status set to ${status.replace(/_/g, " ")} by ${user.name}.`,
+      isInternal: true,
+    },
+  });
+
+  revalidatePath("/admin");
   return { success: true };
 }

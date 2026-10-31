@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Send, Loader2, Building2 } from "lucide-react";
+import { Send, Loader2, Building2, Paperclip, UploadCloud } from "lucide-react";
 
 export function CreateTicketForm({
   userRole,
@@ -66,7 +66,7 @@ export function CreateTicketForm({
 
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* If Staff: Company Selector */}
+          {/* Target Company Selector (Staff only) */}
           {isStaff && (
             <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
               <label
@@ -146,6 +146,31 @@ export function CreateTicketForm({
             />
           </div>
 
+          {/* Screenshot / File Attachments upload */}
+          <div className="space-y-2">
+            <label
+              htmlFor="attachments"
+              className="block text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5"
+            >
+              <Paperclip className="h-3.5 w-3.5 text-emerald-400" />
+              Upload Screenshots & Error Logs (Optional)
+            </label>
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-slate-700 bg-slate-950/60 hover:bg-slate-950 transition-colors">
+              <UploadCloud className="h-5 w-5 text-slate-400 shrink-0" />
+              <input
+                id="attachments"
+                name="attachments"
+                type="file"
+                multiple
+                accept="image/*,.pdf,.txt,.log,.json"
+                className="text-xs text-slate-300 file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Attach error screenshots, terminal outputs, or PDF reports (PNG, JPG, PDF, TXT, LOG).
+            </p>
+          </div>
+
           <div className="flex items-center justify-between pt-4 border-t border-slate-800">
             <Link href="/dashboard">
               <Button type="button" variant="outline">
@@ -157,7 +182,7 @@ export function CreateTicketForm({
               {isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Submitting...
+                  Submitting Ticket & Uploading Files...
                 </>
               ) : (
                 <>

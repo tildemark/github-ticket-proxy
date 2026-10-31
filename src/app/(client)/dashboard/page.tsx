@@ -10,11 +10,15 @@ import { Plus, MessageSquare, Clock, ArrowRight, LifeBuoy, CheckCircle2, AlertCi
 export default async function ClientDashboardPage() {
   const user = await getCurrentUser();
 
-  // Multi-Company Scoping: If user is linked to a company, they see company-level tickets
-  // Otherwise they see tickets they authored
-  const ticketFilter = user.companyId
-    ? { companyId: user.companyId }
-    : { authorId: user.id };
+  // Staff (AGENT and ADMIN) see all tickets (or assigned tickets) across the system
+  // CLIENT users see only tickets belonging to their company
+  let ticketFilter: any = {};
+
+  if (user.role === "CLIENT") {
+    ticketFilter = user.companyId
+      ? { companyId: user.companyId }
+      : { authorId: user.id };
+  }
 
   const tickets = await prisma.ticket.findMany({
     where: ticketFilter,
@@ -39,8 +43,9 @@ export default async function ClientDashboardPage() {
   });
 
   const openCount = tickets.filter(
-    (t) => t.status === "OPEN" || t.status === "IN_PROGRESS" || t.status === "WAITING_ON_CLIENT"
+    (t) => t.status === "OPEN" || t.status === "IN_PROGRESS"
   ).length;
+  const waitingCount = tickets.filter((t) => t.status === "WAITING_ON_CLIENT").length;
   const resolvedCount = tickets.filter(
     (t) => t.status === "RESOLVED" || t.status === "CLOSED"
   ).length;
@@ -85,7 +90,7 @@ export default async function ClientDashboardPage() {
         </div>
 
         {/* Quick Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <Card className="bg-slate-900/40 border-slate-800">
             <CardContent className="p-5 flex items-center justify-between">
               <div>
@@ -101,11 +106,23 @@ export default async function ClientDashboardPage() {
           <Card className="bg-slate-900/40 border-slate-800">
             <CardContent className="p-5 flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wider text-amber-400 font-medium">Active / In-Review</p>
+                <p className="text-xs uppercase tracking-wider text-amber-400 font-medium">Under Review</p>
                 <p className="text-2xl font-bold text-white mt-1">{openCount}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
                 <AlertCircle className="h-5 w-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={`border transition-all ${waitingCount > 0 ? "bg-purple-950/20 border-purple-500/40 shadow-lg shadow-purple-950/20" : "bg-slate-900/40 border-slate-800"}`}>
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-purple-400 font-medium">Waiting on You</p>
+                <p className="text-2xl font-bold text-white mt-1">{waitingCount}</p>
+              </div>
+              <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                <MessageSquare className="h-5 w-5" />
               </div>
             </CardContent>
           </Card>
@@ -158,16 +175,27 @@ export default async function ClientDashboardPage() {
               </div>
             ) : (
               <div className="divide-y divide-slate-800/60">
-                {tickets.map((ticket) => (
-                  <Link
-                    key={ticket.id}
-                    href={`/tickets/${ticket.id}`}
-                    className="block group hover:bg-slate-800/40 transition-colors p-5 sm:px-6"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-2 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <TicketStatusBadge status={ticket.status} />
+                {tickets.map((ticket) => {
+                  const isWaitingOnUser = ticket.status === "WAITING_ON_CLIENT";
+                  return (
+                    <Link
+                      key={ticket.id}
+                      href={`/tickets/${ticket.id}`}
+                      className={`block group transition-colors p-5 sm:px-6 ${
+                        isWaitingOnUser
+                          ? "bg-purple-950/15 hover:bg-purple-950/25 border-l-4 border-l-purple-500"
+                          : "hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="space-y-2 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <TicketStatusBadge status={ticket.status} />
+                            {isWaitingOnUser && (
+                              <span className="text-[11px] font-semibold text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full border border-purple-500/30">
+                                Action Required
+                              </span>
+                            )}
                           <TicketPriorityBadge priority={ticket.priority} />
                           <span className="text-xs text-slate-500 font-mono">
                             #{ticket.id.slice(-6)}
@@ -203,8 +231,9 @@ export default async function ClientDashboardPage() {
                       </div>
                     </div>
                   </Link>
-                ))}
-              </div>
+                );
+              })}
+            </div>
             )}
           </CardContent>
         </Card>

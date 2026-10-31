@@ -32,7 +32,10 @@ function LoginForm() {
       if (res?.error) {
         setError("Invalid email or password credentials.");
       } else {
-        router.push(callbackUrl);
+        // Direct agents and admins to the triage console
+        const isStaff = email.includes("admin@") || email.includes("agent@");
+        const targetUrl = callbackUrl !== "/dashboard" ? callbackUrl : isStaff ? "/admin" : "/dashboard";
+        router.push(targetUrl);
         router.refresh();
       }
     });
